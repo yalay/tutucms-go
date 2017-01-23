@@ -1,0 +1,8 @@
+# production: beijingnew: adserver config
+
+author: testauthor
+comeurl: http://www.baidu.com
+userid: 1
+dictpath: conf/dictionary.txt
+
+
