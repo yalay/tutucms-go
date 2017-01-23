@@ -61,14 +61,18 @@ func ArticlesPostHandler(ctx *iris.Context) {
 		Comeurl: conf.GetComeUrl(),
 	}
 
-	tags := ctx.FormValue("tags")
+	titleKeywords := GetKeywords(title)
 	article.Cid = common.Atoi32(ctx.FormValue("cid"))
 	article.Title = title
-	article.Tag = tags
-	article.Color = ctx.FormValue("color")
+	article.Tag = func() string {
+		tags := ctx.FormValue("tags")
+		if tags != "" {
+			return tags
+		}
+		return titleKeywords
+	}()
 	article.Cover = ctx.FormValue("cover")
-	article.Remark = ctx.FormValue("remark")
-	article.ShortTitle = ctx.FormValue("short_title")
+	article.Remark = title
 	article.Keywords = func() string {
 		keywords := ctx.FormValue("keywords")
 		if keywords != "" {
@@ -76,13 +80,19 @@ func ArticlesPostHandler(ctx *iris.Context) {
 		}
 		return GetKeywords(title)
 	}()
-	article.Content = ctx.FormValue("content")
+	article.Content = func() string {
+		content := ctx.FormValue("content")
+		if content != "" {
+			return content
+		}
+		return title
+	}()
 	article.Addtime = int32(time.Now().Unix())
 	sqliteDb.DB.Save(&article)
 
 	// 保存tag
-	if tags != "" {
-		tagFields := strings.Split(tags, ",")
+	if article.Tag != "" {
+		tagFields := strings.Split(article.Tag, ",")
 		modelTags := make([]models.Tag, 0, len(tagFields))
 		for _, tag := range tagFields {
 			if tag == "" {
@@ -142,12 +152,6 @@ func AttachsPostHandler(ctx *iris.Context) {
 		return
 	}
 
-	associton := sqliteDb.DB.Model(&models.Article{ID: articleId}).Association("Attachs")
-	if associton == nil || associton.Error != nil {
-		ctx.NotFound()
-		return
-	}
-
 	attach := models.Attach{
 		ArticleId: articleId,
 		Uid:       conf.GetUserId(),
@@ -166,7 +170,7 @@ func AttachsPostHandler(ctx *iris.Context) {
 		Status:     1,
 		UploadTime: int32(time.Now().Unix()),
 	}
-	associton.Append(attach)
+	sqliteDb.DB.Save(&attach)
 	ctx.Writef("add success")
 }
 
