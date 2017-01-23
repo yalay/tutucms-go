@@ -82,11 +82,6 @@ func ArticlesPostHandler(ctx *iris.Context) {
 
 	// 保存tag
 	if tags != "" {
-		associton := sqliteDb.DB.Model(&article).Association("Tags")
-		if associton == nil || associton.Error != nil {
-			ctx.NotFound()
-			return
-		}
 		tagFields := strings.Split(tags, ",")
 		modelTags := make([]models.Tag, 0, len(tagFields))
 		for _, tag := range tagFields {
@@ -98,7 +93,8 @@ func ArticlesPostHandler(ctx *iris.Context) {
 				Title: title,
 			})
 		}
-		associton.Append(modelTags)
+		article.Tags = append(article.Tags, modelTags...)
+		sqliteDb.DB.Save(&article)
 	}
 	ctx.Writef("add success")
 }
