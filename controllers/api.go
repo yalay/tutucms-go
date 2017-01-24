@@ -211,7 +211,7 @@ func TagsPostHandler(ctx *iris.Context) {
 		return
 	}
 
-	tags := ctx.Param("tags")
+	tags := ctx.FormValue("tags")
 	if tags == "" {
 		ctx.Writef("tags is empty")
 		return
@@ -225,10 +225,17 @@ func TagsPostHandler(ctx *iris.Context) {
 	}
 
 	tagFields := strings.Split(tags, ",")
+	result := ""
 	for _, tag := range tagFields {
 		var count int
-		sqliteDb.DB.Where("articleId = ? AND tag = ?", articleId, tag).Find(&models.Tag{}).Count(&count)
+		sqliteDb.DB.Where("article_id = ? AND tag = ?", articleId, tag).Find(&models.Tag{}).Count(&count)
 		if count > 0 {
+			if result == "" {
+				result = tag
+			} else {
+				result += "," + tag
+			}
+
 			continue
 		}
 
@@ -238,5 +245,11 @@ func TagsPostHandler(ctx *iris.Context) {
 			Title:     article.Title,
 		}
 		sqliteDb.DB.Save(&modelsTag)
+	}
+
+	if result != "" {
+		ctx.Writef(result + " conflict")
+	} else {
+		ctx.Writef("add success")
 	}
 }

@@ -63,9 +63,9 @@ func (Attach) TableName() string {
 }
 
 type Tag struct {
-	Tag       string `gorm:"type:varchar(30);primary_key"`
+	Tag       string `gorm:"type:varchar(30)"`
 	Title     string `gorm:"type:varchar(250)"`
-	ArticleId int32  `gorm:"primary_key"`
+	ArticleId int32
 }
 
 func (Tag) TableName() string {
