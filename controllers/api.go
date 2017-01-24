@@ -48,7 +48,7 @@ func ArticlesPostHandler(ctx *iris.Context) {
 	}
 
 	var count int
-	sqliteDb.DB.Where("title = ?", title).Find(&models.Article{}).Count(&count)
+	sqliteDb.DB.Model(&models.Article{}).Where("title = ?", title).Count(&count)
 	if count > 0 {
 		ctx.Writef("title:%s exist. Please delete it first.", title)
 		return
@@ -146,7 +146,7 @@ func AttachsPostHandler(ctx *iris.Context) {
 	}
 
 	var count int
-	sqliteDb.DB.Where("file = ?", file).Find(&models.Attach{}).Count(&count)
+	sqliteDb.DB.Model(&models.Attach{}).Where("file = ?", file).Count(&count)
 	if count > 0 {
 		ctx.Writef("file:%s exist. Please delete it first.", file)
 		return
@@ -228,7 +228,7 @@ func TagsPostHandler(ctx *iris.Context) {
 	result := ""
 	for _, tag := range tagFields {
 		var count int
-		sqliteDb.DB.Where("article_id = ? AND tag = ?", articleId, tag).Find(&models.Tag{}).Count(&count)
+		sqliteDb.DB.Model(&models.Tag{}).Where("article_id = ? AND tag = ?", articleId, tag).Count(&count)
 		if count > 0 {
 			if result == "" {
 				result = tag
