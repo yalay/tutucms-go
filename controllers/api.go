@@ -152,11 +152,18 @@ func AttachsPostHandler(ctx *iris.Context) {
 		return
 	}
 
+	var article = models.Article{}
+	sqliteDb.DB.First(&article, articleId)
+	if article.Title == "" {
+		ctx.NotFound()
+		return
+	}
+
 	attach := models.Attach{
 		ArticleId: articleId,
 		Uid:       conf.GetUserId(),
 		Name:      filepath.Base(file),
-		Remark:    ctx.FormValue("remark"),
+		Remark:    article.Title,
 		Size:      common.Atoi32(ctx.FormValue("size")),
 		File:      file,
 		Ext:       filepath.Ext(file),
@@ -195,4 +202,41 @@ func TagsGetHandler(ctx *iris.Context) {
 	}
 
 	ctx.JSON(iris.StatusOK, tags)
+}
+
+func TagsPostHandler(ctx *iris.Context) {
+	articleId := common.Atoi32(ctx.Param("id"))
+	if articleId == 0 {
+		ctx.NotFound()
+		return
+	}
+
+	tags := ctx.Param("tags")
+	if tags == "" {
+		ctx.Writef("tags is empty")
+		return
+	}
+
+	article := models.Article{ID: articleId}
+	sqliteDb.DB.First(&article)
+	if article.Title == "" {
+		ctx.Writef("article:%d donot exist.", articleId)
+		return
+	}
+
+	tagFields := strings.Split(tags, ",")
+	for _, tag := range tagFields {
+		var count int
+		sqliteDb.DB.Where("articleId = ? AND tag = ?", articleId, tag).Find(&models.Tag{}).Count(&count)
+		if count > 0 {
+			continue
+		}
+
+		var modelsTag = models.Tag{
+			Tag:       tag,
+			ArticleId: articleId,
+			Title:     article.Title,
+		}
+		sqliteDb.DB.Save(&modelsTag)
+	}
 }

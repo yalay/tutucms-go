@@ -13,5 +13,6 @@ func main() {
 	iris.Get("/attachs/:id", controllers.AttachsGetHandler)
 	iris.Post("/attachs/:id", controllers.AttachsPostHandler)
 	iris.Get("/tags/:id", controllers.TagsGetHandler)
+	iris.Post("/tags/:id", controllers.TagsPostHandler)
 	iris.Listen(":8080")
 }
