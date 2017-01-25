@@ -105,7 +105,7 @@ func ArticlesPostHandler(ctx *iris.Context) {
 		article.Tags = append(article.Tags, modelTags...)
 	}
 	sqliteDb.DB.Save(&article)
-	ctx.Writef("add success")
+	ctx.JSON(iris.StatusOK, article)
 }
 
 func AttachsGetHandler(ctx *iris.Context) {
