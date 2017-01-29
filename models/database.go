@@ -49,7 +49,7 @@ type Attach struct {
 	Uid        int32
 	Name       string `gorm:"type:varchar(100)"`
 	Remark     string `gorm:"type:text;not null"`
-	Size       int32
+	Size       int64
 	File       string `gorm:"type:varchar(250);index"`
 	Ext        string `gorm:"type:varchar(10)"`
 	Status     int32  `gorm:"not null"` // 默认1 状态, 1:正常 0:隐藏

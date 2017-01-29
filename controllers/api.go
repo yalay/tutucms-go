@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"models"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -146,7 +147,7 @@ func AttachsPostHandler(ctx *iris.Context) {
 		return
 	}
 
-	size := common.Atoi32(ctx.FormValue("size"))
+	size := common.Atoi64(ctx.FormValue("size"))
 	if file != "" {
 		err := addAttachFile(file, articleId, size)
 		if err != nil {
@@ -173,7 +174,7 @@ func AttachsPostHandler(ctx *iris.Context) {
 	ctx.Writef("add success")
 }
 
-func addAttachFile(file string, articleId int32, size int32) error {
+func addAttachFile(file string, articleId int32, size int64) error {
 	var count int
 	sqliteDb.DB.Where("file = ?", file).Find(&models.Attach{}).Count(&count)
 	if count > 0 {
@@ -191,12 +192,16 @@ func addAttachFile(file string, articleId int32, size int32) error {
 		Uid:       conf.GetUserId(),
 		Name:      filepath.Base(file),
 		Remark:    article.Title,
-		Size:      size,
-		File:      file,
-		Ext:       filepath.Ext(file),
+		Size: func() int64 {
+			if size != 0 {
+				return size
+			}
+			return getSize(file)
+		}(),
+		File: file,
+		Ext:  filepath.Ext(file),
 		Type: func() int32 {
-			if strings.HasPrefix(file, "http://") ||
-				strings.HasPrefix(file, "https://") {
+			if isRemoteFile(file) {
 				return 1
 			}
 			return 0
@@ -296,4 +301,25 @@ func TagsPostHandler(ctx *iris.Context) {
 	} else {
 		ctx.Writef("add success")
 	}
+}
+
+func isRemoteFile(filePath string) bool {
+	if strings.HasPrefix(filePath, "http://") ||
+		strings.HasPrefix(filePath, "https://") {
+		return true
+	}
+	return false
+}
+
+func getSize(filePath string) int64 {
+	// 远程文件暂不支持
+	if isRemoteFile(filePath) {
+		return 0
+	}
+
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return 0
+	}
+	return fileInfo.Size()
 }
