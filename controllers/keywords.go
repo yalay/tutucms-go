@@ -90,32 +90,21 @@ func (handler *KeywordsHandler) GetKeywords(text string) string {
 }
 
 func isNouns(keyword string) bool {
-	if strings.HasSuffix(keyword, "/n") ||
-		strings.HasSuffix(keyword, "/nr") ||
-		strings.HasSuffix(keyword, "/ns") ||
-		strings.HasSuffix(keyword, "/nt") ||
-		strings.HasSuffix(keyword, "/nz") ||
-		strings.HasSuffix(keyword, "/ng") {
+	if strings.HasSuffix(keyword, "/n") {
 		return true
 	}
 	return false
 }
 
 func isAdjectiveWord(keyword string) bool {
-	if strings.HasSuffix(keyword, "/a") ||
-		strings.HasSuffix(keyword, "/ad") ||
-		strings.HasSuffix(keyword, "/an") ||
-		strings.HasSuffix(keyword, "/ag") ||
-		strings.HasSuffix(keyword, "/al") {
+	if strings.HasSuffix(keyword, "/a") {
 		return true
 	}
 	return false
 }
 
 func isVerb(keyword string) bool {
-	if strings.HasSuffix(keyword, "/v") ||
-		strings.HasSuffix(keyword, "/vd") ||
-		strings.HasSuffix(keyword, "/vn") {
+	if strings.HasSuffix(keyword, "/v") {
 		return true
 	}
 	return false
