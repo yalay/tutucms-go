@@ -3,13 +3,14 @@ package controllers
 import (
 	"common"
 	"conf"
+	"fmt"
 	"log"
 	"models"
 	"path/filepath"
 	"strings"
 	"time"
 
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/kataras/iris"
 )
 
@@ -17,7 +18,7 @@ var sqliteDb *models.MyDb
 
 func init() {
 	sqliteDb = models.NewMyDb()
-	err := sqliteDb.OpenDataBase("sqlite3", "tutu.db")
+	err := sqliteDb.OpenDataBase("mysql", "root:ya@/dbname?charset=utf8&parseTime=True&loc=Local")
 	if err != nil {
 		log.Panicf("open db err:%v\n", err)
 	}
@@ -139,23 +140,50 @@ func AttachsPostHandler(ctx *iris.Context) {
 	}
 
 	file := ctx.FormValue("file")
-	if file == "" {
+	files := ctx.FormValue("files")
+	if file == "" && files == "" {
 		ctx.Writef("file is empty")
 		return
 	}
 
+	size := common.Atoi32(ctx.FormValue("size"))
+	if file != "" {
+		err := addAttachFile(file, articleId, size)
+		if err != nil {
+			ctx.Writef("%v", err)
+			return
+		}
+	} else if files != "" {
+		result := ""
+		basePaths := filepath.Base(files)
+		dirPath := filepath.Dir(files)
+		fileFields := strings.Split(basePaths, ",")
+		for _, fileField := range fileFields {
+			err := addAttachFile(filepath.Join(dirPath, fileField), articleId, size)
+			if err != nil {
+				result += err.Error()
+			}
+		}
+		if result != "" {
+			ctx.Writef(result)
+			return
+		}
+	}
+
+	ctx.Writef("add success")
+}
+
+func addAttachFile(file string, articleId int32, size int32) error {
 	var count int
 	sqliteDb.DB.Where("file = ?", file).Find(&models.Attach{}).Count(&count)
 	if count > 0 {
-		ctx.Writef("file:%s exist. Please delete it first.", file)
-		return
+		return fmt.Errorf("file:%s exist. Please delete it first.", file)
 	}
 
 	var article = models.Article{}
 	sqliteDb.DB.First(&article, articleId)
 	if article.Title == "" {
-		ctx.NotFound()
-		return
+		return fmt.Errorf("title is empty. file:%s.", file)
 	}
 
 	attach := models.Attach{
@@ -163,7 +191,7 @@ func AttachsPostHandler(ctx *iris.Context) {
 		Uid:       conf.GetUserId(),
 		Name:      filepath.Base(file),
 		Remark:    article.Title,
-		Size:      common.Atoi32(ctx.FormValue("size")),
+		Size:      size,
 		File:      file,
 		Ext:       filepath.Ext(file),
 		Type: func() int32 {
@@ -177,7 +205,7 @@ func AttachsPostHandler(ctx *iris.Context) {
 		UploadTime: int32(time.Now().Unix()),
 	}
 	sqliteDb.DB.Save(&attach)
-	ctx.Writef("add success")
+	return nil
 }
 
 func TagsGetHandler(ctx *iris.Context) {
@@ -223,9 +251,26 @@ func TagsPostHandler(ctx *iris.Context) {
 		return
 	}
 
-	tagFields := strings.Split(tags, ",")
+	newTagFields := strings.Split(tags, ",")
+
+	// 更新article的tags字段
+	if article.Tag != "" {
+		articleTagFields := strings.Split(article.Tag, ",")
+		tagSet := common.NewSet()
+		for _, articleTag := range articleTagFields {
+			tagSet.Add(articleTag)
+		}
+		for _, newTag := range newTagFields {
+			if tagSet.Contains(newTag) {
+				continue
+			}
+			article.Tag = article.Tag + "," + newTag
+		}
+	}
+
+	// 更新tag表
 	result := ""
-	for _, tag := range tagFields {
+	for _, tag := range newTagFields {
 		var count int
 		sqliteDb.DB.Where("article_id = ? AND tag = ?", articleId, tag).Find(&models.Tag{}).Count(&count)
 		if count > 0 {
