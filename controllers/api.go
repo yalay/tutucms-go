@@ -8,18 +8,23 @@ import (
 	"models"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kataras/iris"
 )
 
 var sqliteDb *models.MyDb
+var digitReg *regexp.Regexp
 
 func init() {
+	digitReg = regexp.MustCompile(`\d+`)
 	sqliteDb = models.NewMyDb()
-	err := sqliteDb.OpenDataBase("mysql", "root:ya@/dbname?charset=utf8&parseTime=True&loc=Local")
+	err := sqliteDb.OpenDataBase("sqlite3", "tutu.db")
 	if err != nil {
 		log.Panicf("open db err:%v\n", err)
 	}
@@ -155,15 +160,49 @@ func AttachsPostHandler(ctx *iris.Context) {
 			return
 		}
 	} else if files != "" {
+		// files=http://test.com/00011.jpg-00025.jpg,00027.jpg
 		result := ""
 		basePaths := filepath.Base(files)
 		dirPath := filepath.Dir(files)
 		fileFields := strings.Split(basePaths, ",")
 		for _, fileField := range fileFields {
-			err := addAttachFile(filepath.Join(dirPath, fileField), articleId, size)
-			if err != nil {
-				result += err.Error()
+			continuousFiles := strings.Split(fileField, "-")
+			if len(continuousFiles) > 1 {
+				if len(continuousFiles) != 2 {
+					ctx.Writef(`"-" support only one`)
+					return
+				}
+
+				digitBeginStr := digitReg.FindString(continuousFiles[0])
+				digitLen := len(digitBeginStr)
+				digitBegin := common.Atoi(digitBeginStr)
+				digitEnd := common.Atoi(digitReg.FindString(continuousFiles[1]))
+				if digitBegin == 0 || digitEnd == 0 {
+					ctx.Writef(`not digit`)
+					return
+				}
+
+				if digitEnd <= digitBegin || digitEnd-digitBegin > 99 {
+					ctx.Writef(`invalid end digit`)
+					return
+				}
+
+				for i := digitBegin; i <= digitEnd; i++ {
+					curDigit := fmt.Sprintf("%0"+strconv.Itoa(digitLen)+"d", i)
+					newDigit := strings.Replace(continuousFiles[0], digitBeginStr, curDigit, 1)
+					err := addAttachFile(filepath.Join(dirPath, newDigit), articleId, size)
+					if err != nil {
+						result += err.Error()
+					}
+				}
+
+			} else {
+				err := addAttachFile(filepath.Join(dirPath, fileField), articleId, size)
+				if err != nil {
+					result += err.Error()
+				}
 			}
+
 		}
 		if result != "" {
 			ctx.Writef(result)

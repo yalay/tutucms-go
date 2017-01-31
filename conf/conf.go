@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-yaml/yaml"
@@ -13,10 +14,10 @@ import (
 var gConfig = &Config{}
 
 type Config struct {
-	Author   string
-	UserId   int32
-	ComeUrl  string
-	DictPath string
+	Author    string
+	UserId    int32
+	ComeUrl   string
+	DictPaths []string
 }
 
 func init() {
@@ -40,7 +41,7 @@ func GetUserId() int32 {
 }
 
 func GetDictPath() string {
-	return gConfig.DictPath
+	return strings.Join(gConfig.DictPaths, ",")
 }
 
 func reloadConf(configFile string) {

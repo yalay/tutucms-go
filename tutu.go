@@ -24,5 +24,5 @@ func main() {
 	iris.Post("/attachs/:id", controllers.AttachsPostHandler)
 	iris.Get("/tags/:id", controllers.TagsGetHandler)
 	iris.Post("/tags/:id", controllers.TagsPostHandler)
-	iris.Listen(strconv.Itoa(listenPort))
+	iris.Listen(":" + strconv.Itoa(listenPort))
 }
