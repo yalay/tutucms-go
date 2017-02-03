@@ -6,5 +6,8 @@ userid: 1
 dictpaths:
   - conf/userDict.txt
   - conf/baseDict.txt
+dbuser: test
+dbpassword: test
+dbname: test
 
 

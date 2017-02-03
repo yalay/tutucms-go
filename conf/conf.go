@@ -14,10 +14,13 @@ import (
 var gConfig = &Config{}
 
 type Config struct {
-	Author    string
-	UserId    int32
-	ComeUrl   string
-	DictPaths []string
+	Author     string
+	UserId     int32
+	ComeUrl    string
+	DictPaths  []string
+	DbUser     string
+	DbPassword string
+	DbName     string
 }
 
 func init() {
@@ -42,6 +45,18 @@ func GetUserId() int32 {
 
 func GetDictPath() string {
 	return strings.Join(gConfig.DictPaths, ",")
+}
+
+func GetDbUser() string {
+	return gConfig.DbUser
+}
+
+func GetDbPassword() string {
+	return gConfig.DbPassword
+}
+
+func GetDbName() string {
+	return gConfig.DbName
 }
 
 func reloadConf(configFile string) {

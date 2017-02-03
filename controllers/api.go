@@ -14,7 +14,6 @@ import (
 	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kataras/iris"
 )
 
@@ -24,7 +23,9 @@ var digitReg *regexp.Regexp
 func init() {
 	digitReg = regexp.MustCompile(`\d+`)
 	sqliteDb = models.NewMyDb()
-	err := sqliteDb.OpenDataBase("sqlite3", "tutu.db")
+	err := sqliteDb.OpenDataBase("mysql",
+		fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local",
+			conf.GetDbUser(), conf.GetDbPassword(), conf.GetDbName()))
 	if err != nil {
 		log.Panicf("open db err:%v\n", err)
 	}
