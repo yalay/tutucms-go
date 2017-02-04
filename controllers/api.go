@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"models"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	// _ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/kataras/iris"
 )
 
@@ -26,6 +28,8 @@ func init() {
 	err := sqliteDb.OpenDataBase("mysql",
 		fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local",
 			conf.GetDbUser(), conf.GetDbPassword(), conf.GetDbName()))
+	// 本地测试
+	// err := sqliteDb.OpenDataBase("sqlite3", "tutu.db")
 	if err != nil {
 		log.Panicf("open db err:%v\n", err)
 	}
@@ -147,8 +151,8 @@ func AttachsPostHandler(ctx *iris.Context) {
 	}
 
 	file := ctx.FormValue("file")
-	files := ctx.FormValue("files")
-	if file == "" && files == "" {
+	fileRawUrls := ctx.FormValue("files")
+	if file == "" && fileRawUrls == "" {
 		ctx.Writef("file is empty")
 		return
 	}
@@ -160,12 +164,17 @@ func AttachsPostHandler(ctx *iris.Context) {
 			ctx.Writef("%v", err)
 			return
 		}
-	} else if files != "" {
+	} else if fileRawUrls != "" {
 		// files=http://test.com/00011.jpg-00025.jpg,00027.jpg
 		result := ""
-		basePaths := filepath.Base(files)
-		dirPath := filepath.Dir(files)
-		fileFields := strings.Split(basePaths, ",")
+		fileUrls, err := url.Parse(fileRawUrls)
+		if err != nil {
+			ctx.Writef("parse err:%v\n", err)
+			return
+		}
+
+		baseName := filepath.Base(fileUrls.Path)
+		fileFields := strings.Split(baseName, ",")
 		for _, fileField := range fileFields {
 			continuousFiles := strings.Split(fileField, "-")
 			if len(continuousFiles) > 1 {
@@ -190,15 +199,17 @@ func AttachsPostHandler(ctx *iris.Context) {
 
 				for i := digitBegin; i <= digitEnd; i++ {
 					curDigit := fmt.Sprintf("%0"+strconv.Itoa(digitLen)+"d", i)
-					newDigit := strings.Replace(continuousFiles[0], digitBeginStr, curDigit, 1)
-					err := addAttachFile(filepath.Join(dirPath, newDigit), articleId, size)
+					newBaseName := strings.Replace(continuousFiles[0], digitBeginStr, curDigit, 1)
+					newFileUrl := strings.Replace(fileRawUrls, baseName, newBaseName, 1)
+					err := addAttachFile(newFileUrl, articleId, size)
 					if err != nil {
 						result += err.Error()
 					}
 				}
 
 			} else {
-				err := addAttachFile(filepath.Join(dirPath, fileField), articleId, size)
+				newFileUrl := strings.Replace(fileRawUrls, baseName, fileField, 1)
+				err := addAttachFile(newFileUrl, articleId, size)
 				if err != nil {
 					result += err.Error()
 				}
