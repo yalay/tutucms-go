@@ -76,6 +76,7 @@ func ArticlesPostHandler(ctx *iris.Context) {
 	titleKeywords := GetKeywords(title)
 	article.Cid = common.Atoi32(ctx.FormValue("cid"))
 	article.Title = title
+	article.ShortTitle = ctx.FormValue("stitle")
 	article.Tag = func() string {
 		tags := ctx.FormValue("tags")
 		if tags != "" {
